@@ -2,11 +2,12 @@
 {
     using global::System.Text.Json.Serialization;
 
-    public class Power    
+    public class Power
     {
         [JsonPropertyName("failed")]
         public int Failed { get; set; }
+
         [JsonPropertyName("restored")]
-        public int Restored { get; set; } 
+        public int Restored { get; set; }
     }
 }

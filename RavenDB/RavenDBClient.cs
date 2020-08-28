@@ -2,14 +2,14 @@
 using ApexLoader.ApexLog;
 using ApexLoader.ApexStatus;
 
-using Raven.Client;
+using Microsoft.Extensions.Logging;
+
 using Raven.Client.Documents;
 using Raven.Client.Documents.Session;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ApexLoader.RavenDB
@@ -17,7 +17,7 @@ namespace ApexLoader.RavenDB
     public class RavenDBClient : IDbClient
     {
         private static Lazy<IDocumentStore> store = new Lazy<IDocumentStore>(CreateStore);
-       public static IDocumentStore Store => store.Value;
+        private readonly ILogger<RavenDBClient> _logger;
 
         private static IDocumentStore CreateStore()
         {
@@ -29,20 +29,29 @@ namespace ApexLoader.RavenDB
 
             return store;
         }
+
+        public RavenDBClient(ILogger<RavenDBClient> logger)
+        {
+            _logger = logger;
+        }
+
+        public static IDocumentStore Store => store.Value;
+
         public async Task AddConfig(ConfigRoot configRoot)
         {
             using (IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient"))
             {
-                await session.StoreAsync(configRoot,"ConfigRoot/"+ configRoot.ApexId);
+                await session.StoreAsync(configRoot, "ConfigRoot/" + configRoot.ApexId);
                 await session.SaveChangesAsync();
             }
         }
 
         public async Task AddLog(LogRoot logRoot)
         {
+            logRoot.Ilog.Record = null; // no need to store as we are using AddRecords
             using (IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient"))
             {
-                await session.StoreAsync(logRoot,"logRoot/"+ logRoot.ApexId);
+                await session.StoreAsync(logRoot, "logRoot/" + logRoot.ApexId);
                 await session.SaveChangesAsync();
             }
         }
@@ -59,13 +68,16 @@ namespace ApexLoader.RavenDB
                     if (result != null)
                     {
                         lastEntry = result.DateTime;
-                    }                
+                    }
                 }
-                catch(InvalidOperationException ex)
-                {                   
+                catch (InvalidOperationException ex)
+                {
                     //expected when there are no RecordLog entries
                 }
-
+                if (records == null)
+                {
+                    return;
+                }
                 foreach (var record in records)
                 {
                     foreach (var datum in record.Data)
@@ -79,17 +91,15 @@ namespace ApexLoader.RavenDB
                     }
                 }
 
-
                 await session.SaveChangesAsync();
             }
-           
         }
 
         public async Task AddStatus(StatusRoot statusRoot)
         {
             using (IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient"))
             {
-                await session.StoreAsync(statusRoot, "StatusRoot/"+ statusRoot.ApexId);
+                await session.StoreAsync(statusRoot, "StatusRoot/" + statusRoot.ApexId);
                 await session.SaveChangesAsync();
             }
         }

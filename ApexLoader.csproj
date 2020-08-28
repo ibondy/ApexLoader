@@ -4,6 +4,18 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <UserSecretsId>4d67db06-3add-4835-8fa9-466ad6ebce38</UserSecretsId>
+    <Authors>Ivan Bondy</Authors>
+    <Company>Ivan Bondy</Company>
+    <Description>Downloads Neptune Apex data into RaveDb</Description>
+    <Copyright>Ivan Bondy</Copyright>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <RepositoryUrl>https://github.com/ibondy/ApexLoader</RepositoryUrl>
+    <RepositoryType>Git</RepositoryType>
+    <PackageProjectUrl>https://github.com/ibondy/ApexLoader</PackageProjectUrl>
+    <PackageIcon>ib-dot-logo-small.png</PackageIcon>
+    <PackageReleaseNotes>Install RavenDB: https://ravendb.net/docs/article-page/5.0/csharp/start/getting-started
+Create ApexClient database.</PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -14,17 +26,22 @@
     <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Http.Connections.Client" Version="5.0.0-preview.8.20414.8" />
     <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.0-preview.8.20414.8" />
-    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.12.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="5.0.0-preview.8.20407.11" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0-preview.8.20407.11" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="5.0.0-preview.8.20407.11" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="5.0.0-preview.8.20407.3" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0-preview.8.20407.11" />
+    <PackageReference Include="Microsoft.Extensions.Logging.EventLog" Version="5.0.0-preview.8.20407.11" />
     <PackageReference Include="RavenDB.Client" Version="5.0.2" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="settings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="ib-dot-logo-small.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
     </None>
   </ItemGroup>
 

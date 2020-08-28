@@ -1,134 +1,179 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+
 // ReSharper disable AsyncConverter.AsyncWait
 
 namespace ApexLoader
 {
-    using System.Diagnostics;
-    using System.Net;
-    using System.Threading;
-    using System.Xml;
-
-    using ApexLoader.Cosmos;
-    using RavenDB;
     using Microsoft.Extensions.Configuration;
     using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
 
-    public class LoaderService :IHostedService
-    {
-        private readonly IConfiguration _configuration;
-        private readonly ApexService _apexService1;
-        private readonly ApexService _apexService2;
-        private readonly CookieDelegateHandler _cookieDelegateHandler;
-        private readonly ApexConfigs _apexConfigs;
-        private readonly ILogger<LoaderService> _logger;
-        private readonly CosmosClient _cosmosClient;
-        private readonly CancellationTokenSource _stoppingCts = new CancellationTokenSource();
-       
+    using Raven.Client.Exceptions;
 
-        public LoaderService(IConfiguration configuration, ApexService apexService1, ApexService apexService2,  CookieDelegateHandler cookieDelegateHandler, ApexConfigs configs, ILogger<LoaderService> logger, CosmosClient cosmosClient)
+    using System.Diagnostics;
+    using System.Threading;
+
+    public class LoaderService : IHostedService, IDisposable
+    {
+        private readonly ApexConfigs _apexConfigs;
+        private readonly ApexService _apexService;
+        private readonly IConfiguration _configuration;
+        private readonly CookieDelegateHandler _cookieDelegateHandler;
+        private readonly IDbClient _dbClient;
+        private readonly ILogger<LoaderService> _logger;
+        private readonly CancellationTokenSource _stoppingCts = new CancellationTokenSource();
+        private System.Timers.Timer _timer;
+
+        private async Task ApexExecuteAsync(string apexName, CancellationToken stoppingToken)
+        {
+            var sw = new Stopwatch();
+            sw.Start();
+
+            _logger.LogInformation($"Executing {apexName} download");
+
+            switch (apexName)
+            {
+                case "Apex1":
+                    if (_apexConfigs.Apex1.Active)
+                    {
+                        _apexService.SetContext(_apexConfigs.Apex1);
+                    }
+                    else
+                    {
+                        return;
+                    }
+                    break;
+
+                case "Apex2":
+                    if (_apexConfigs.Apex2.Active)
+                    {
+                        _apexService.SetContext(_apexConfigs.Apex2);
+                    }
+                    else
+                    {
+                        return;
+                    }
+                    break;
+            }
+
+            _apexService.GetLogin().Wait();
+
+            if (!string.IsNullOrEmpty(_cookieDelegateHandler.AccessCookie))
+            {
+                var log = await _apexService.GetLog().ConfigureAwait(false);
+                var status = await _apexService.GetStatus().ConfigureAwait(false);
+                var config = await _apexService.GetConfig().ConfigureAwait(false);
+
+                if (config != null)
+                {
+                    config.ApexId = apexName;
+                    try
+                    {
+                        await _dbClient.AddConfig(config).ConfigureAwait(false);
+                    }
+                    catch (RavenException ex)
+                    {
+                        _logger.LogError(ex, ex.Message);
+                        _logger.LogInformation($"{apexName} unsucessfull. Unable to connect to database");
+                        return;
+                    }
+                }
+
+                if (status != null)
+                {
+                    status.ApexId = apexName;
+                    try
+                    {
+                        await _dbClient.AddStatus(status).ConfigureAwait(false);
+                    }
+                    catch (RavenException ex)
+                    {
+                        _logger.LogError(ex, ex.Message);
+                        _logger.LogInformation($"{apexName} unsucessfull. Unable to connect to database");
+                        return;
+                    }
+                }
+
+                if (log != null)
+                {
+                    log.ApexId = apexName;
+                    try
+                    {
+                        await _dbClient.AddRecords(log.Ilog.Record, log.ApexId, log.Ilog.Timezone).ConfigureAwait(false);
+                        await _dbClient.AddLog(log).ConfigureAwait(false);
+                    }
+                    catch (RavenException ex)
+                    {
+                        _logger.LogError(ex, ex.Message);
+                        _logger.LogInformation($"{apexName} unsucessfull. Unable to connect to database");
+                        return;
+                    }
+                }
+            }
+
+            _logger.LogInformation($"Completed Apex1 download in {sw.Elapsed.TotalSeconds} seconds");
+        }
+
+        private async Task DoWork(CancellationToken cancellationToken)
+        {
+            await ApexExecuteAsync("Apex1", cancellationToken).ConfigureAwait(false);
+            await ApexExecuteAsync("Apex2", cancellationToken).ConfigureAwait(false);
+        }
+
+        private async void OnElapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            try
+            {
+                _logger.LogInformation("Starting new Apex download from timer");
+                await DoWork(_stoppingCts.Token).ConfigureAwait(false);
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "OnElapsed - likely due to PC going to sleep");
+            }
+        }
+
+        public LoaderService(IConfiguration configuration, ApexService apexService, CookieDelegateHandler cookieDelegateHandler, ApexConfigs configs, ILogger<LoaderService> logger, IDbClient dbClient)
         {
             _configuration = configuration;
-            _apexService1 = apexService1;
-            _apexService2 = apexService2;
+            _apexService = apexService;
             _cookieDelegateHandler = cookieDelegateHandler;
             _apexConfigs = configs;
             _logger = logger;
-            _cosmosClient = cosmosClient;
+            _dbClient = dbClient;
         }
+
+        public void Dispose()
+        {
+            _timer?.Dispose();
+        }
+
         /// <summary>
         /// Triggered when the application host is ready to start the service.
         /// </summary>
-        /// <param name="cancellationToken">Indicates that the start process has been aborted.</param>
+        /// <param name="cancellationToken"> Indicates that the start process has been aborted. </param>
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            await Apex1ExecuteAsync(cancellationToken);
-            await Apex2ExecuteAsync(cancellationToken);
+            _logger.LogInformation("Starting LoaderService");
+            _timer = new System.Timers.Timer();
+            _timer.Elapsed += OnElapsed;
+            var interval = Convert.ToDouble(_configuration["DownloadInterval"]);
+            _timer.Interval = TimeSpan.FromMinutes(interval).TotalMilliseconds;
+            _timer.Start();
 
-           
+            await DoWork(cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Triggered when the application host is performing a graceful shutdown.
         /// </summary>
-        /// <param name="cancellationToken">Indicates that the shutdown process should no longer be graceful.</param>
+        /// <param name="cancellationToken"> Indicates that the shutdown process should no longer be graceful. </param>
         public Task StopAsync(CancellationToken cancellationToken)
         {
+            _logger.LogInformation("Stopping LoaderService");
+            _timer.Stop();
             return Task.CompletedTask;
-        }
-
-        private async Task Apex1ExecuteAsync(CancellationToken stoppingToken)
-        {
-            Debug.WriteLine("Executing Apex1");
-            if (_apexConfigs.Apex1.Active)
-            {
-                _apexService1.SetContext(_apexConfigs.Apex1);
-                _apexService1.GetLogin().Wait();
-
-                 if (!string.IsNullOrEmpty(_cookieDelegateHandler.AccessCookie))
-                 {
-                    var log = await _apexService1.GetLog().ConfigureAwait(false);
-                    log.ApexId = "Apex1";
-                    
-                   // await _cosmosClient.AddRecords(log.Ilog.Record, log.ApexId, log.Ilog.Timezone);
-                   // await _cosmosClient.AddLog(log);
-                                      
-                    var status = await _apexService1.GetStatus().ConfigureAwait(false);
-                    status.ApexId = "Apex1";
-                   // await _cosmosClient.AddStatus(status);
-                    
-                    var config = await _apexService1.GetConfig().ConfigureAwait(false);
-                    config.ApexId = "Apex1";
-                   // await _cosmosClient.AddConfig(config);
-
-                    var raven = new RavenDBClient();
-                    await raven.AddConfig(config);
-                    await raven.AddLog(log);
-                    await raven.AddStatus(status);
-                    await raven.AddRecords(log.Ilog.Record, log.ApexId, log.Ilog.Timezone);
-
-                 }
-                
-            }
-            Debug.WriteLine("Completed Apex1");
-        }
-
-        private async Task Apex2ExecuteAsync(CancellationToken stoppingToken)
-        {
-            Debug.WriteLine("Executing Apex2");
-
-            if (_apexConfigs.Apex2.Active)
-            {
-                _apexService2.SetContext(_apexConfigs.Apex2);
-                _apexService2.GetLogin().Wait();
-
-                if (!string.IsNullOrEmpty(_cookieDelegateHandler.AccessCookie))
-                {
-                    var log = await _apexService2.GetLog().ConfigureAwait(false);
-                    log.ApexId = "Apex2";
-
-                    //await _cosmosClient.AddRecords(log.Ilog.Record, log.ApexId, log.Ilog.Timezone);
-                    //await _cosmosClient.AddLog(log);
-
-                    var status = await _apexService2.GetStatus().ConfigureAwait(false);
-                    status.ApexId = "Apex2";
-                    //await _cosmosClient.AddStatus(status);
-                    var config = await _apexService2.GetConfig().ConfigureAwait(false);
-                    config.ApexId = "Apex2";
-                    //await _cosmosClient.AddConfig(config);
-
-                    var raven = new RavenDBClient();
-                    await raven.AddConfig(config);
-                    await raven.AddLog(log);
-                    await raven.AddStatus(status);
-                    await raven.AddRecords(log.Ilog.Record, log.ApexId, log.Ilog.Timezone);
-                }
-            }
-            Debug.WriteLine("Completed Apex2");
         }
     }
 }

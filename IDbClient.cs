@@ -10,9 +10,13 @@ namespace ApexLoader
     public interface IDbClient
     {
         Task AddConfig(ConfigRoot configRoot);
+
         Task AddLog(LogRoot logRoot);
+
         Task AddRecords(IList<Record> records, string apexId, string timeZoneOffset);
+
         Task AddStatus(StatusRoot statusRoot);
+
         void Dispose();
     }
 }

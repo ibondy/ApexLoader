@@ -1,11 +1,11 @@
 {
-  "profiles": {
-    "ApexLoader": {
-      "commandName": "Project",
-      "environmentVariables": {
-        "Key": "Value",
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+    "profiles": {
+        "ApexLoader": {
+            "commandName": "Project",
+            "environmentVariables": {
+                "Key": "Value",
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        }
     }
-  }
 }

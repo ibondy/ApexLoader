@@ -1,23 +1,15 @@
-﻿using Newtonsoft.Json;
-
-using System;
-using System.Collections.Generic;
-using System.Dynamic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System;
 
 namespace ApexLoader.ApexLog
 {
-    public class RecordLog :Datum
+    public class RecordLog : Datum
     {
-        public DateTime DateTime { get; set; }
-        public string ApexId { get; set; }
+        public RecordLog()
+        {
+        }
 
         //[JsonProperty("id")]
         //public string Id { get; set; }
-
-        public RecordLog() { }
         public RecordLog(DateTime dateTime, string apexId, Datum datum)
         {
             this.Did = datum.Did;
@@ -28,5 +20,8 @@ namespace ApexLoader.ApexLog
             this.DateTime = dateTime;
             //this.Id = Guid.NewGuid().ToString();
         }
+
+        public string ApexId { get; set; }
+        public DateTime DateTime { get; set; }
     }
 }
