@@ -19,8 +19,11 @@ Modify settings.json with your Apex values
 If you have a second Apex, you can configure it in the Apex2 section in the config file and change   
 - Active to "True"
 
+Default download interval from Apex is 1 minute. If you like to extend this interval change config file: 
+- DownloadInterval from 1 to x, where x is the number of minutes to wait between downloads
+
 Open Windows Terminal as Administrator and run:  
-**sc create "ApexLoader Service" binPath="<your folder>\apexloader.exe" start=delayed-auto DisplyName="Automatic downloader from Apex to RavenDb"**
+**sc create "ApexLoader Service" binPath="<your folder>\apexloader.exe" start=auto DisplyName="Automatic downloader from Apex to RavenDb"**
 
 **sc start "ApexLoader Service"**
 
