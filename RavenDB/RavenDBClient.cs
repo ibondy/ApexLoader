@@ -31,14 +31,14 @@ namespace ApexLoader.RavenDB
         {
             IDocumentStore createStore = new DocumentStore
             {
-                Urls = new[] { _config.RavenDBConnectionString },
-                Database = _config.RavenDBDatabaseName
+                Urls = new[] { "http://127.0.0.1:8080" },
+                Database = "ApexClient"
             }.Initialize();
 
             return createStore;
         }
 
-        public RavenDBClient(ILogger<RavenDBClient> logger, ApexConfigs config)
+        public RavenDBClient(ILogger<RavenDBClient> logger)
         {
           _logger = logger;
           _config = config;
