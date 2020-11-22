@@ -13,6 +13,10 @@ namespace ApexLoader
 
         Task AddLog(LogRoot logRoot);
 
+        Task AddTRecords(IList<ApexTLog.Record> records, string apexId, string timeZoneOffset);
+
+        Task AddORecords(IList<ApexOlog.Record> records, string apexId, string timeZoneOffset);
+
         Task AddRecords(IList<Record> records, string apexId, string timeZoneOffset);
 
         Task AddStatus(StatusRoot statusRoot);

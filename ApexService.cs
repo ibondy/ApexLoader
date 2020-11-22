@@ -87,6 +87,84 @@
         }
 
         /// <summary>
+        /// Returns Tlog data from Apex
+        /// </summary>
+        /// <returns> </returns>
+        public async Task<ApexTLog.Root> GetTLog()
+        {
+            if (_apexConfig == null)
+            {
+                throw new ArgumentNullException("Context is not set");
+            }
+            ///TODO-Implement specific days /rest/ilog?days=1&sdate=200825&_=1598501258383 HTTP/1.1
+            var baseUri = string.Format($" {_apexConfig.Url}:{_apexConfig.Port}");
+            var uri = string.Format($"{baseUri}/rest/tlog");
+
+            var result = await _httpClient.GetAsync(uri).ConfigureAwait(false);
+            if (result.IsSuccessStatusCode)
+            {
+                _logger.Log(LogLevel.Information, null, "Getting Tlog data from Apex");
+                var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                _logger.Log(LogLevel.Information, null, "Received Tlog data from Apex");
+                return JsonSerializer.Deserialize<ApexTLog.Root>(content);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Returns Olog data from Apex
+        /// </summary>
+        /// <returns> </returns>
+        public async Task<ApexOlog.Root> GetOLog()
+        {
+            if (_apexConfig == null)
+            {
+                throw new ArgumentNullException("Context is not set");
+            }
+            ///TODO-Implement specific days /rest/ilog?days=1&sdate=200825&_=1598501258383 HTTP/1.1
+            var baseUri = string.Format($" {_apexConfig.Url}:{_apexConfig.Port}");
+            var uri = string.Format($"{baseUri}/rest/olog");
+
+            var result = await _httpClient.GetAsync(uri).ConfigureAwait(false);
+            if (result.IsSuccessStatusCode)
+            {
+                _logger.Log(LogLevel.Information, null, "Getting Olog data from Apex");
+                var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                _logger.Log(LogLevel.Information, null, "Received Olog data from Apex");
+                return JsonSerializer.Deserialize<ApexOlog.Root>(content);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Returns Dlog data from Apex
+        /// </summary>
+        /// <returns> </returns>
+        public async Task<ApexDLog.Root> GetDLog()
+        {
+            if (_apexConfig == null)
+            {
+                throw new ArgumentNullException("Context is not set");
+            }
+            ///TODO-Implement specific days /rest/ilog?days=1&sdate=200825&_=1598501258383 HTTP/1.1
+            var baseUri = string.Format($" {_apexConfig.Url}:{_apexConfig.Port}");
+            var uri = string.Format($"{baseUri}/rest/dlog");
+
+            var result = await _httpClient.GetAsync(uri).ConfigureAwait(false);
+            if (result.IsSuccessStatusCode)
+            {
+                _logger.Log(LogLevel.Information, null, "Getting Dlog data from Apex");
+                var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
+                _logger.Log(LogLevel.Information, null, "Received Dlog data from Apex");
+                return JsonSerializer.Deserialize<ApexDLog.Root>(content);
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Gets login cookie
         /// </summary>
         /// <returns> </returns>

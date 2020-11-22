@@ -61,16 +61,65 @@ namespace ApexLoader
 
             if (!string.IsNullOrEmpty(_cookieDelegateHandler.AccessCookie))
             {
+                var tlog = await _apexService.GetTLog().ConfigureAwait(false);
+                var dlog = await _apexService.GetDLog().ConfigureAwait(false);
+                var olog = await _apexService.GetOLog().ConfigureAwait(false);
+
                 var log = await _apexService.GetLog().ConfigureAwait(false);
                 var status = await _apexService.GetStatus().ConfigureAwait(false);
                 var config = await _apexService.GetConfig().ConfigureAwait(false);
 
-                if (config != null)
+                //if (config != null)
+                //{
+                //    config.ApexId = apexName;
+                //    try
+                //    {
+                //        await _dbClient.AddConfig(config).ConfigureAwait(false);
+                //    }
+                //    catch (RavenException ex)
+                //    {
+                //        _logger.LogError(ex, ex.Message);
+                //        _logger.LogInformation($"{apexName} unsucessfull. Unable to connect to database");
+                //        return;
+                //    }
+                //}
+
+                //if (status != null)
+                //{
+                //    status.ApexId = apexName;
+                //    try
+                //    {
+                //        await _dbClient.AddStatus(status).ConfigureAwait(false);
+                //    }
+                //    catch (RavenException ex)
+                //    {
+                //        _logger.LogError(ex, ex.Message);
+                //        _logger.LogInformation($"{apexName} unsucessfull. Unable to connect to database");
+                //        return;
+                //    }
+                //}
+
+                //if (log != null)
+                //{
+                //    log.ApexId = apexName;
+                //    try
+                //    {
+                //        await _dbClient.AddRecords(log.Ilog.Record, log.ApexId, log.Ilog.Timezone).ConfigureAwait(false);
+                //        await _dbClient.AddLog(log).ConfigureAwait(false);
+                //    }
+                //    catch (RavenException ex)
+                //    {
+                //        _logger.LogError(ex, ex.Message);
+                //        _logger.LogInformation($"{apexName} unsucessfull. Unable to connect to database");
+                //        return;
+                //    }
+                //}
+
+                if (tlog != null)
                 {
-                    config.ApexId = apexName;
                     try
                     {
-                        await _dbClient.AddConfig(config).ConfigureAwait(false);
+                        await _dbClient.AddTRecords(tlog.Tlog.Record, apexName, tlog.Tlog.Timezone);
                     }
                     catch (RavenException ex)
                     {
@@ -80,28 +129,11 @@ namespace ApexLoader
                     }
                 }
 
-                if (status != null)
+                if (olog != null)
                 {
-                    status.ApexId = apexName;
                     try
                     {
-                        await _dbClient.AddStatus(status).ConfigureAwait(false);
-                    }
-                    catch (RavenException ex)
-                    {
-                        _logger.LogError(ex, ex.Message);
-                        _logger.LogInformation($"{apexName} unsucessfull. Unable to connect to database");
-                        return;
-                    }
-                }
-
-                if (log != null)
-                {
-                    log.ApexId = apexName;
-                    try
-                    {
-                        await _dbClient.AddRecords(log.Ilog.Record, log.ApexId, log.Ilog.Timezone).ConfigureAwait(false);
-                        await _dbClient.AddLog(log).ConfigureAwait(false);
+                        await _dbClient.AddORecords(olog.Olog.Record, apexName, olog.Olog.Timezone);
                     }
                     catch (RavenException ex)
                     {
