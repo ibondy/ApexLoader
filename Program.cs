@@ -16,20 +16,31 @@
     {
         private static ApexConfigs Configure(IConfiguration config)
         {
-            var apexConfigs = new ApexConfigs();
-            apexConfigs.Apex1.Name = config["Apex1:Name"];
-            apexConfigs.Apex1.Url = config["Apex1:Url"];
-            apexConfigs.Apex1.Port = Convert.ToInt32(config["Apex1:Port"]);
-            apexConfigs.Apex1.User = config["Apex1:User"];
-            apexConfigs.Apex1.Password = config["Apex1:Password"];
-            apexConfigs.Apex1.Active = Convert.ToBoolean(config["Apex1:Active"]);
+            var apexConfigs = new ApexConfigs
+            {
+                Apex1 =
+                {
+                    Name = config["Apex1:Name"],
+                    Url = config["Apex1:Url"],
+                    Port = Convert.ToInt32(config["Apex1:Port"]),
+                    User = config["Apex1:User"],
+                    Password = config["Apex1:Password"],
+                    Active = Convert.ToBoolean(config["Apex1:Active"])
+                },
+                Apex2 =
+                {
+                    Name = config["Apex2:Name"],
+                    Url = config["Apex2:Url"],
+                    Port = Convert.ToInt32(config["Apex2:Port"]),
+                    User = config["Apex2:User"],
+                    Password = config["Apex2:Password"],
+                    Active = Convert.ToBoolean(config["Apex2:Active"])
+                },
+                RavenDBConnectionString = config["RavenDBConnectionString"],
+                RavenDBDatabaseName = config["RavenDBDatabaseName"],
+                DownloadInterval = Convert.ToInt32(config["DownloadInterval"])
+            };
 
-            apexConfigs.Apex2.Name = config["Apex2:Name"];
-            apexConfigs.Apex2.Url = config["Apex2:Url"];
-            apexConfigs.Apex2.Port = Convert.ToInt32(config["Apex2:Port"]);
-            apexConfigs.Apex2.User = config["Apex2:User"];
-            apexConfigs.Apex2.Password = config["Apex2:Password"];
-            apexConfigs.Apex2.Active = Convert.ToBoolean(config["Apex2:Active"]);
 
             return apexConfigs;
         }
@@ -38,7 +49,6 @@
         {
             string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
             Console.WriteLine("Welcome to ApexLoader");
-            //var host = new HostBuilder()
             var host = Host.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((hostContext, builder) =>
                 {

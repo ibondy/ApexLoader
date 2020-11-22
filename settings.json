@@ -1,20 +1,22 @@
 ﻿{
-    "Apex1": {
-        "Name": "Apex1",
-        "Url": "",
-        "Port": 80,
-        "User": "",
-        "Password": "",
-        "Active": "True"
-    },
-    "Apex2": {
-        "Name": "Apex2",
-        "Url": "",
-        "Port": 80,
-        "User": "",
-        "Password": "",
-        "Active": "False"
-    },
+  "Apex1": {
+    "Name": "Apex1",
+    "Url": "",
+    "Port": 80,
+    "User": "",
+    "Password": "",
+    "Active": "True"
+  },
+  "Apex2": {
+    "Name": "Apex2",
+    "Url": "",
+    "Port": 80,
+    "User": "",
+    "Password": "",
+    "Active": "False"
+  },
+  "RavenDBConnectionString": "http://127.0.0.1:8080",
+  "RavenDBDatabaseName": "ApexClient",
+  "DownloadInterval": 1
 
-    "DownloadInterval": 1
 }
