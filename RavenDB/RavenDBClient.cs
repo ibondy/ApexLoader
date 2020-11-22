@@ -15,25 +15,33 @@ using System.Threading.Tasks;
 
 namespace ApexLoader.RavenDB
 {
+    using System.Diagnostics.CodeAnalysis;
+    using System.Globalization;
+    using Microsoft.Extensions.Configuration;
+
+    [SuppressMessage("ReSharper", "ArrangeThisQualifier")]
+    [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class RavenDBClient : IDbClient
     {
         private static readonly Lazy<IDocumentStore> DBstore = new Lazy<IDocumentStore>(CreateStore);
         private readonly ILogger<RavenDBClient> _logger;
+        private static IConfiguration _config;
 
         private static IDocumentStore CreateStore()
         {
             IDocumentStore createStore = new DocumentStore
             {
-                Urls = new[] { "http://127.0.0.1:8080" },
-                Database = "ApexClient"
+                Urls = new[] { _config["RavenDBConnectionString"] },
+                Database = _config["RavenDBDatabaseName"]
             }.Initialize();
 
             return createStore;
         }
 
-        public RavenDBClient(ILogger<RavenDBClient> logger)
+        public RavenDBClient(ILogger<RavenDBClient> logger, IConfiguration config)
         {
-            _logger = logger;
+          _logger = logger;
+          _config = config;
         }
 
         public static IDocumentStore Store => DBstore.Value;
@@ -56,7 +64,7 @@ namespace ApexLoader.RavenDB
         public async Task AddRecords(IList<Record> records, string apexId, string timeZoneOffset)
         {
             DateTime lastEntry = DateTime.Now.AddDays(-1);
-            int tzOffset = Int32.Parse(Decimal.Parse(timeZoneOffset).ToString("#"));
+            int tzOffset = int.Parse(decimal.Parse(timeZoneOffset).ToString("#"));
             using IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient");
             try
             {
@@ -93,58 +101,56 @@ namespace ApexLoader.RavenDB
         public async Task AddTRecords(IList<ApexTLog.Record> records, string apexId, string timeZoneOffset)
         {
             DateTime lastEntry = DateTime.Now.AddDays(-1);
-            int tzOffset = Int32.Parse(Decimal.Parse(timeZoneOffset).ToString("#"));
-            using (IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient"))
+            int tzOffset = int.Parse(decimal.Parse(timeZoneOffset).ToString("#"));
+            using IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient");
+            try
             {
-                try
+                var result = await session.Query<RecordLog>().Where(p => p.ApexId == apexId).OrderByDescending(p => p.DateTime).FirstAsync();
+                if (result != null)
                 {
-                    var result = await session.Query<RecordLog>().Where(p => p.ApexId == apexId).OrderByDescending(p => p.DateTime).FirstAsync();
-                    if (result != null)
-                    {
-                        lastEntry = result.DateTime;
-                    }
+                    lastEntry = result.DateTime;
                 }
-                catch (InvalidOperationException ex)
-                {
-                    //expected when there are no RecordLog entries
-                }
-                if (records == null)
-                {
-                    return;
-                }
-                foreach (var record in records)
-                {
-                    var datum = new Datum() { Did = record.Did, Value = record.Value.ToString() };
-                    if (record.Did.EndsWith("0"))
-                    {
-                        datum.Type = "Alk";
-                    }
-                    if (record.Did.EndsWith("1"))
-                    {
-                        datum.Type = "Cal";
-                    }
-                    if (record.Did.EndsWith("2"))
-                    {
-                        datum.Type = "Mg";
-                    }
-                    datum.Name = $"{datum.Did}_{datum.Type}";
-
-                    var dateStamp = DateTimeOffset.FromUnixTimeSeconds(record.Date).ToOffset(new TimeSpan(tzOffset, 0, 0)).DateTime;
-                    if (dateStamp > lastEntry)
-                    {
-                        var recordLog = new RecordLog(dateStamp, apexId, datum);
-                        await session.StoreAsync(recordLog, $"RecordLogs/{datum.Did}:{record.Date}");
-                    }
-                }
-
-                await session.SaveChangesAsync();
             }
+            catch (InvalidOperationException ex)
+            {
+                //expected when there are no RecordLog entries
+            }
+            if (records == null)
+            {
+                return;
+            }
+            foreach (var record in records)
+            {
+                var datum = new Datum() { Did = record.Did, Value = record.Value.ToString(CultureInfo.CurrentCulture) };
+                if (record.Did.EndsWith("0"))
+                {
+                    datum.Type = "Alk";
+                }
+                if (record.Did.EndsWith("1"))
+                {
+                    datum.Type = "Cal";
+                }
+                if (record.Did.EndsWith("2"))
+                {
+                    datum.Type = "Mg";
+                }
+                datum.Name = $"{datum.Did}_{datum.Type}";
+
+                var dateStamp = DateTimeOffset.FromUnixTimeSeconds(record.Date).ToOffset(new TimeSpan(tzOffset, 0, 0)).DateTime;
+                if (dateStamp > lastEntry)
+                {
+                    var recordLog = new RecordLog(dateStamp, apexId, datum);
+                    await session.StoreAsync(recordLog, $"RecordLogs/{datum.Did}:{record.Date}");
+                }
+            }
+
+            await session.SaveChangesAsync();
         }
 
         public async Task AddORecords(IList<ApexOlog.Record> records, string apexId, string timeZoneOffset)
         {
             DateTime lastEntry = DateTime.Now.AddDays(-1);
-            int tzOffset = Int32.Parse(Decimal.Parse(timeZoneOffset).ToString("#"));
+            int tzOffset = int.Parse(decimal.Parse(timeZoneOffset).ToString("#"));
             using IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient");
             try
             {

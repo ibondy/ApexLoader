@@ -4,6 +4,10 @@
     {
         public Config Apex1 { get; set; } = new Config();
         public Config Apex2 { get; set; } = new Config();
+
+        public string RavenDBConnectionString { get; set; }
+        public string RavenDBDatabaseName { get; set; }
+        public int DownloadInterval { get; set; }
     }
 
     public class Config
