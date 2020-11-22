@@ -12,6 +12,7 @@ namespace ApexLoader
     using Raven.Client.Exceptions;
 
     using System.Diagnostics;
+    using System.Linq;
     using System.Threading;
 
     public class LoaderService : IHostedService, IDisposable
@@ -69,53 +70,53 @@ namespace ApexLoader
                 var status = await _apexService.GetStatus().ConfigureAwait(false);
                 var config = await _apexService.GetConfig().ConfigureAwait(false);
 
-                //if (config != null)
-                //{
-                //    config.ApexId = apexName;
-                //    try
-                //    {
-                //        await _dbClient.AddConfig(config).ConfigureAwait(false);
-                //    }
-                //    catch (RavenException ex)
-                //    {
-                //        _logger.LogError(ex, ex.Message);
-                //        _logger.LogInformation($"{apexName} unsucessfull. Unable to connect to database");
-                //        return;
-                //    }
-                //}
+                if (config != null) //Apex configuration
+                {
+                    config.ApexId = apexName;
+                    try
+                    {
+                        await _dbClient.AddConfig(config).ConfigureAwait(false);
+                    }
+                    catch (RavenException ex)
+                    {
+                        _logger.LogError(ex, ex.Message);
+                        _logger.LogInformation($"{apexName} unsuccessful. Unable to connect to database");
+                        return;
+                    }
+                }
 
-                //if (status != null)
-                //{
-                //    status.ApexId = apexName;
-                //    try
-                //    {
-                //        await _dbClient.AddStatus(status).ConfigureAwait(false);
-                //    }
-                //    catch (RavenException ex)
-                //    {
-                //        _logger.LogError(ex, ex.Message);
-                //        _logger.LogInformation($"{apexName} unsucessfull. Unable to connect to database");
-                //        return;
-                //    }
-                //}
+                if (status != null) //Apex status
+                {
+                    status.ApexId = apexName;
+                    try
+                    {
+                        await _dbClient.AddStatus(status).ConfigureAwait(false);
+                    }
+                    catch (RavenException ex)
+                    {
+                        _logger.LogError(ex, ex.Message);
+                        _logger.LogInformation($"{apexName} unsuccessful. Unable to connect to database");
+                        return;
+                    }
+                }
 
-                //if (log != null)
-                //{
-                //    log.ApexId = apexName;
-                //    try
-                //    {
-                //        await _dbClient.AddRecords(log.Ilog.Record, log.ApexId, log.Ilog.Timezone).ConfigureAwait(false);
-                //        await _dbClient.AddLog(log).ConfigureAwait(false);
-                //    }
-                //    catch (RavenException ex)
-                //    {
-                //        _logger.LogError(ex, ex.Message);
-                //        _logger.LogInformation($"{apexName} unsucessfull. Unable to connect to database");
-                //        return;
-                //    }
-                //}
+                if (log != null) //Apex log
+                {
+                    log.ApexId = apexName;
+                    try
+                    {
+                        await _dbClient.AddRecords(log.Ilog.Record, log.ApexId, log.Ilog.Timezone).ConfigureAwait(false);
+                        await _dbClient.AddLog(log).ConfigureAwait(false);
+                    }
+                    catch (RavenException ex)
+                    {
+                        _logger.LogError(ex, ex.Message);
+                        _logger.LogInformation($"{apexName} unsuccessful. Unable to connect to database");
+                        return;
+                    }
+                }
 
-                if (tlog != null)
+                if (tlog != null && tlog.Tlog.Record.Any()) //Apex Trident
                 {
                     try
                     {
@@ -124,12 +125,12 @@ namespace ApexLoader
                     catch (RavenException ex)
                     {
                         _logger.LogError(ex, ex.Message);
-                        _logger.LogInformation($"{apexName} unsucessfull. Unable to connect to database");
+                        _logger.LogInformation($"{apexName} unsuccessful. Unable to connect to database");
                         return;
                     }
                 }
 
-                if (olog != null)
+                if (olog != null) //Apex outlets
                 {
                     try
                     {
@@ -138,7 +139,7 @@ namespace ApexLoader
                     catch (RavenException ex)
                     {
                         _logger.LogError(ex, ex.Message);
-                        _logger.LogInformation($"{apexName} unsucessfull. Unable to connect to database");
+                        _logger.LogInformation($"{apexName} unsuccessful. Unable to connect to database");
                         return;
                     }
                 }

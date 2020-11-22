@@ -17,18 +17,18 @@ namespace ApexLoader.RavenDB
 {
     public class RavenDBClient : IDbClient
     {
-        private static Lazy<IDocumentStore> store = new Lazy<IDocumentStore>(CreateStore);
+        private static readonly Lazy<IDocumentStore> DBstore = new Lazy<IDocumentStore>(CreateStore);
         private readonly ILogger<RavenDBClient> _logger;
 
         private static IDocumentStore CreateStore()
         {
-            IDocumentStore store = new DocumentStore
+            IDocumentStore createStore = new DocumentStore
             {
                 Urls = new[] { "http://127.0.0.1:8080" },
                 Database = "ApexClient"
             }.Initialize();
 
-            return store;
+            return createStore;
         }
 
         public RavenDBClient(ILogger<RavenDBClient> logger)
@@ -36,64 +36,58 @@ namespace ApexLoader.RavenDB
             _logger = logger;
         }
 
-        public static IDocumentStore Store => store.Value;
+        public static IDocumentStore Store => DBstore.Value;
 
         public async Task AddConfig(ConfigRoot configRoot)
         {
-            using (IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient"))
-            {
-                await session.StoreAsync(configRoot, "ConfigRoot/" + configRoot.ApexId);
-                await session.SaveChangesAsync();
-            }
+            using IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient");
+            await session.StoreAsync(configRoot, "ConfigRoot/" + configRoot.ApexId);
+            await session.SaveChangesAsync();
         }
 
         public async Task AddLog(LogRoot logRoot)
         {
             logRoot.Ilog.Record = null; // no need to store as we are using AddRecords
-            using (IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient"))
-            {
-                await session.StoreAsync(logRoot, "logRoot/" + logRoot.ApexId);
-                await session.SaveChangesAsync();
-            }
+            using IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient");
+            await session.StoreAsync(logRoot, "logRoot/" + logRoot.ApexId);
+            await session.SaveChangesAsync();
         }
 
         public async Task AddRecords(IList<Record> records, string apexId, string timeZoneOffset)
         {
             DateTime lastEntry = DateTime.Now.AddDays(-1);
             int tzOffset = Int32.Parse(Decimal.Parse(timeZoneOffset).ToString("#"));
-            using (IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient"))
+            using IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient");
+            try
             {
-                try
+                var result = await session.Query<RecordLog>().Where(p => p.ApexId == apexId).OrderByDescending(p => p.DateTime).FirstAsync();
+                if (result != null)
                 {
-                    var result = await session.Query<RecordLog>().Where(p => p.ApexId == apexId).OrderByDescending(p => p.DateTime).FirstAsync();
-                    if (result != null)
-                    {
-                        lastEntry = result.DateTime;
-                    }
+                    lastEntry = result.DateTime;
                 }
-                catch (InvalidOperationException ex)
-                {
-                    //expected when there are no RecordLog entries
-                }
-                if (records == null)
-                {
-                    return;
-                }
-                foreach (var record in records)
-                {
-                    foreach (var datum in record.Data)
-                    {
-                        var dateStamp = DateTimeOffset.FromUnixTimeSeconds(record.Date).ToOffset(new TimeSpan(tzOffset, 0, 0)).DateTime;
-                        if (dateStamp > lastEntry)
-                        {
-                            var recordLog = new RecordLog(dateStamp, apexId, datum);
-                            await session.StoreAsync(recordLog);
-                        }
-                    }
-                }
-
-                // await session.SaveChangesAsync();
             }
+            catch (InvalidOperationException ex)
+            {
+                //expected when there are no RecordLog entries
+            }
+            if (records == null)
+            {
+                return;
+            }
+            foreach (var record in records)
+            {
+                foreach (var datum in record.Data)
+                {
+                    var dateStamp = DateTimeOffset.FromUnixTimeSeconds(record.Date).ToOffset(new TimeSpan(tzOffset, 0, 0)).DateTime;
+                    if (dateStamp > lastEntry)
+                    {
+                        var recordLog = new RecordLog(dateStamp, apexId, datum);
+                        await session.StoreAsync(recordLog);
+                    }
+                }
+            }
+
+            // await session.SaveChangesAsync();
         }
 
         public async Task AddTRecords(IList<ApexTLog.Record> records, string apexId, string timeZoneOffset)
@@ -136,7 +130,7 @@ namespace ApexLoader.RavenDB
                     datum.Name = $"{datum.Did}_{datum.Type}";
 
                     var dateStamp = DateTimeOffset.FromUnixTimeSeconds(record.Date).ToOffset(new TimeSpan(tzOffset, 0, 0)).DateTime;
-                    //if (dateStamp > lastEntry)
+                    if (dateStamp > lastEntry)
                     {
                         var recordLog = new RecordLog(dateStamp, apexId, datum);
                         await session.StoreAsync(recordLog, $"RecordLogs/{datum.Did}:{record.Date}");
@@ -151,49 +145,47 @@ namespace ApexLoader.RavenDB
         {
             DateTime lastEntry = DateTime.Now.AddDays(-1);
             int tzOffset = Int32.Parse(Decimal.Parse(timeZoneOffset).ToString("#"));
-            using (IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient"))
+            using IAsyncDocumentSession session = Store.OpenAsyncSession("ApexClient");
+            try
             {
-                try
+                var result = await session.Query<RecordLog>().Where(p => p.ApexId == apexId).OrderByDescending(p => p.DateTime).FirstAsync();
+                if (result != null)
                 {
-                    var result = await session.Query<RecordLog>().Where(p => p.ApexId == apexId).OrderByDescending(p => p.DateTime).FirstAsync();
-                    if (result != null)
-                    {
-                        lastEntry = result.DateTime;
-                    }
+                    lastEntry = result.DateTime;
                 }
-                catch (InvalidOperationException ex)
-                {
-                    //expected when there are no RecordLog entries
-                }
-                if (records == null)
-                {
-                    return;
-                }
-                foreach (var record in records)
-                {
-                    var dateStamp = DateTimeOffset.FromUnixTimeSeconds(record.Date).ToOffset(new TimeSpan(tzOffset, 0, 0)).DateTime;
-                    //if (dateStamp > lastEntry)
-                    {
-                        var datum = new Datum() { Did = record.Did, Name = record.Name, Type = "pwr", Value = record.Value };
-                        var recordLog = new RecordLog(dateStamp, apexId, datum)
-                        {
-                            Did = record.Did,
-                            Name = record.Name,
-                            Value = record.Value
-                        };
-                        try
-                        {
-                            await session.StoreAsync(recordLog, $"RecordLogs/{datum.Did}:{record.Date}");
-                        }
-                        catch (NonUniqueObjectException ex)
-                        {
-                            _logger.LogError(ex, ex.Message);
-                        }
-                    }
-                }
-
-                await session.SaveChangesAsync();
             }
+            catch (InvalidOperationException ex)
+            {
+                //expected when there are no RecordLog entries
+            }
+            if (records == null)
+            {
+                return;
+            }
+            foreach (var record in records)
+            {
+                var dateStamp = DateTimeOffset.FromUnixTimeSeconds(record.Date).ToOffset(new TimeSpan(tzOffset, 0, 0)).DateTime;
+                if (dateStamp > lastEntry)
+                {
+                    var datum = new Datum() { Did = record.Did, Name = record.Name, Type = "pwr", Value = record.Value };
+                    var recordLog = new RecordLog(dateStamp, apexId, datum)
+                    {
+                        Did = record.Did,
+                        Name = record.Name,
+                        Value = record.Value
+                    };
+                    try
+                    {
+                        await session.StoreAsync(recordLog, $"RecordLogs/{datum.Did}:{record.Date}");
+                    }
+                    catch (NonUniqueObjectException ex)
+                    {
+                        _logger.LogError(ex, ex.Message);
+                    }
+                }
+            }
+
+            await session.SaveChangesAsync();
         }
 
         public async Task AddStatus(StatusRoot statusRoot)
