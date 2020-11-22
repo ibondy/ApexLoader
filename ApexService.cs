@@ -1,22 +1,49 @@
-﻿namespace ApexLoader
+﻿#region Copyright
+
+// MIT License
+// 
+// Copyright (c) 2020 Ivan Bondy
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+#endregion
+
+namespace ApexLoader
 {
-    using ApexConfig;
-
-    using ApexLog;
-
-    using ApexStatus;
-
-    using Microsoft.Extensions.Configuration;
-    using Microsoft.Extensions.Logging;
+    #region using
 
     using System;
     using System.Linq;
     using System.Net.Http;
     using System.Text.Json;
     using System.Threading.Tasks;
+    using ApexConfig;
+    using ApexLog;
+    using ApexStatus;
+    using ApexTLog;
+    using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Logging;
+
+    #endregion
 
     /// <summary>
-    /// Communicates with Apex via RESTApi
+    ///     Communicates with Apex via RESTApi
     /// </summary>
     public class ApexService
     {
@@ -35,7 +62,7 @@
         }
 
         /// <summary>
-        /// Returns conguration from Apex
+        ///     Returns conguration from Apex
         /// </summary>
         /// <returns> </returns>
         public async Task<ConfigRoot> GetConfig()
@@ -61,7 +88,7 @@
         }
 
         /// <summary>
-        /// Returns log data from Apex
+        ///     Returns log data from Apex
         /// </summary>
         /// <returns> </returns>
         public async Task<LogRoot> GetLog()
@@ -70,6 +97,7 @@
             {
                 throw new ArgumentNullException("Context is not set");
             }
+
             ///TODO-Implement specific days /rest/ilog?days=1&sdate=200825&_=1598501258383 HTTP/1.1
             var baseUri = string.Format($" {_apexConfig.Url}:{_apexConfig.Port}");
             var uri = string.Format($"{baseUri}/rest/ilog");
@@ -87,15 +115,16 @@
         }
 
         /// <summary>
-        /// Returns Tlog data from Apex
+        ///     Returns Tlog data from Apex
         /// </summary>
         /// <returns> </returns>
-        public async Task<ApexTLog.Root> GetTLog()
+        public async Task<Root> GetTLog()
         {
             if (_apexConfig == null)
             {
                 throw new ArgumentNullException("Context is not set");
             }
+
             ///TODO-Implement specific days /rest/ilog?days=1&sdate=200825&_=1598501258383 HTTP/1.1
             var baseUri = string.Format($" {_apexConfig.Url}:{_apexConfig.Port}");
             var uri = string.Format($"{baseUri}/rest/tlog");
@@ -106,14 +135,14 @@
                 _logger.Log(LogLevel.Information, null, "Getting Tlog data from Apex");
                 var content = await result.Content.ReadAsStringAsync().ConfigureAwait(false);
                 _logger.Log(LogLevel.Information, null, "Received Tlog data from Apex");
-                return JsonSerializer.Deserialize<ApexTLog.Root>(content);
+                return JsonSerializer.Deserialize<Root>(content);
             }
 
             return null;
         }
 
         /// <summary>
-        /// Returns Olog data from Apex
+        ///     Returns Olog data from Apex
         /// </summary>
         /// <returns> </returns>
         public async Task<ApexOlog.Root> GetOLog()
@@ -122,6 +151,7 @@
             {
                 throw new ArgumentNullException("Context is not set");
             }
+
             ///TODO-Implement specific days /rest/ilog?days=1&sdate=200825&_=1598501258383 HTTP/1.1
             var baseUri = string.Format($" {_apexConfig.Url}:{_apexConfig.Port}");
             var uri = string.Format($"{baseUri}/rest/olog");
@@ -139,7 +169,7 @@
         }
 
         /// <summary>
-        /// Returns Dlog data from Apex
+        ///     Returns Dlog data from Apex
         /// </summary>
         /// <returns> </returns>
         public async Task<ApexDLog.Root> GetDLog()
@@ -148,6 +178,7 @@
             {
                 throw new ArgumentNullException("Context is not set");
             }
+
             ///TODO-Implement specific days /rest/ilog?days=1&sdate=200825&_=1598501258383 HTTP/1.1
             var baseUri = string.Format($" {_apexConfig.Url}:{_apexConfig.Port}");
             var uri = string.Format($"{baseUri}/rest/dlog");
@@ -165,7 +196,7 @@
         }
 
         /// <summary>
-        /// Gets login cookie
+        ///     Gets login cookie
         /// </summary>
         /// <returns> </returns>
         public async Task GetLogin()
@@ -177,7 +208,7 @@
 
             var baseUri = string.Format($" {_apexConfig.Url}:{_apexConfig.Port}");
             var uri = string.Format($"{baseUri}/rest/login");
-            var login = new ApexLoginContext { Password = _apexConfig.Password, User = _apexConfig.User };
+            var login = new ApexLoginContext {Password = _apexConfig.Password, User = _apexConfig.User};
             var payload = JsonSerializer.Serialize(login);
 
             _logger.Log(LogLevel.Information, null, "Login to Apex");
@@ -193,7 +224,7 @@
         }
 
         /// <summary>
-        /// Returns status from Apex
+        ///     Returns status from Apex
         /// </summary>
         /// <returns> </returns>
         public async Task<StatusRoot> GetStatus()
@@ -219,7 +250,7 @@
         }
 
         /// <summary>
-        /// Sets Apex connection context
+        ///     Sets Apex connection context
         /// </summary>
         /// <param name="apexConfig"> </param>
         public void SetContext(Config apexConfig)
